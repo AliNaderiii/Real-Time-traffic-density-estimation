@@ -1,7 +1,5 @@
+<img width="1920" height="1080" alt="sample_image" src="https://github.com/user-attachments/assets/87bd5639-44fa-4e3d-b86d-136b27fa01e0" />
 # Real-Time Traffic Density Estimation using YOLO11
-
-![Project Banner](https://via.placeholder.com/1200x400/0A0A0F/00E5FF?text=Traffic+AI+-+YOLO11)  
-*(Replace with a nice screenshot of your dashboard or video preview)*
 
 **An advanced computer vision solution for real-time vehicle detection and dual-lane traffic density estimation using YOLO11 Nano and OpenCV.**
 
