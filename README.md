@@ -1,6 +1,3 @@
-# Real-Time-traffic-density-estimation
-An advanced predictive pipeline leveraging state-of-the-art YOLO11 Nano deep learning and OpenCV region boundaries to estimate vehicle counts and traffic intensity on dual-lane highway camera feeds.
-
 # Real-Time Traffic Density Estimation using YOLO11
 
 ![Project Banner](https://via.placeholder.com/1200x400/0A0A0F/00E5FF?text=Traffic+AI+-+YOLO11)  
