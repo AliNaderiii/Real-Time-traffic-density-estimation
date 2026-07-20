@@ -1,2 +1,66 @@
 # Real-Time-traffic-density-estimation
 An advanced predictive pipeline leveraging state-of-the-art YOLO11 Nano deep learning and OpenCV region boundaries to estimate vehicle counts and traffic intensity on dual-lane highway camera feeds.
+
+# Real-Time Traffic Density Estimation using YOLO11
+
+![Project Banner](https://via.placeholder.com/1200x400/0A0A0F/00E5FF?text=Traffic+AI+-+YOLO11)  
+*(Replace with a nice screenshot of your dashboard or video preview)*
+
+**An advanced computer vision solution for real-time vehicle detection and dual-lane traffic density estimation using YOLO11 Nano and OpenCV.**
+
+---
+
+## 🌟 Features
+
+- **State-of-the-art Vehicle Detection** with **YOLO11 Nano**
+- **Real-time Traffic Intensity Analysis** (Smooth / Heavy)
+- **Dual-lane ROI-based Counting** using OpenCV polygon regions
+- **High Accuracy**: 97.4% mAP50 | 94.7% Recall | 91.2% Precision
+- **ONNX Export** ready for deployment (C++ / OpenCV)
+- **Interactive Dashboard** showcasing results, metrics, and video inference
+- **Comprehensive EDA** and training visualization
+
+---
+
+## 📊 Project Overview
+
+This project implements an end-to-end pipeline for estimating traffic density from top-view highway camera feeds. The system detects vehicles using a custom-trained **YOLO11** model and classifies them into left and right lanes using predefined polygonal regions of interest (ROI).
+
+**Key Achievements:**
+- Successful migration from YOLOv8 to **YOLO11**
+- Training completed in ~30 minutes on GTX 1650 with CUDA
+- Robust handling of Windows Unicode paths
+- Clean dataset with zero annotation errors
+
+---
+
+## 🛠️ Tech Stack
+
+| Component              | Technology                          |
+|------------------------|-------------------------------------|
+| Object Detection       | YOLO11 Nano (Ultralytics)           |
+| Computer Vision        | OpenCV                              |
+| Training               | PyTorch + CUDA                      |
+| Model Export           | ONNX                                |
+| Visualization          | Matplotlib, Seaborn                 |
+| Dashboard              | HTML + CSS + JavaScript             |
+| Notebooks              | Jupyter Notebook                    |
+
+---
+
+## 📁 Project Structure
+
+```bash
+Traffic-Density-Estimation/
+├── runs/detect/train/              # Training results (Ultralytics)
+│   ├── results.png
+│   ├── confusion_matrix_normalized.png
+│   └── BoxPR_curve.png
+├── eda_box_distributions.png
+├── processed_sample_video.mp4
+├── best.onnx                       # Exported model (10.1 MB)
+├── Traffic_Density_Advanced_Modeling.ipynb
+├── Traffic_Density_Advanced_EDA.ipynb
+├── Traffic_Density_Estimation_Portfolio.html  # Main Dashboard
+├── assets/                         # Screenshots & extra media
+└── README.md
