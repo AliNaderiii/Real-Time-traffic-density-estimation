@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Traffic Density Estimation - YOLO11 Deep Learning Dashboard</title>
+    <meta name="description"
+        content="State-of-the-art vehicle detection and real-time traffic density estimation dashboard utilizing YOLO11 and OpenCV on top-view roadway camera feeds.">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060608;
+            --card-bg: rgba(15, 15, 24, 0.7);
+            --card-border: rgba(255, 255, 255, 0.04);
+            --cyan: #00E5FF;
+            --orange: #FF6D00;
+            --green: #00FF66;
+            --red: #FF3D00;
+            --text: #F1F1F6;
+            --text-muted: #8E8E9E;
+            --glow-cyan: rgba(0, 229, 255, 0.15);
+            --glow-orange: rgba(255, 109, 0, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Ambient background glows */
+        .ambient-glow {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+            filter: blur(100px);
+        }
+
+        .glow-1 {
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 229, 255, 0.15) 0%, transparent 70%);
+            top: -100px;
+            right: -100px;
+        }
+
+        .glow-2 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 109, 0, 0.12) 0%, transparent 70%);
+            bottom: -100px;
+            left: -100px;
+        }
+
+        header {
+            border-bottom: 1px solid var(--card-border);
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(6, 6, 8, 0.8);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            color: var(--cyan);
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+        }
+
+        nav {
+            display: flex;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 4px;
+            border-radius: 30px;
+            border: 1px solid var(--card-border);
+        }
+
+        .nav-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 8px 20px;
+            font-size: 13.5px;
+            font-weight: 600;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-tab:hover {
+            color: #fff;
+        }
+
+        .nav-tab.active {
+            background-color: var(--cyan);
+            color: var(--bg);
+            box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3);
+        }
+
+        .hero {
+            padding: 60px 8% 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(0, 229, 255, 0.08);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            color: var(--cyan);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+        }
+
+        .hero h1 {
+            font-size: clamp(32px, 5vw, 56px);
+            font-weight: 800;
+            letter-spacing: -2px;
+            line-height: 1.1;
+            margin-bottom: 16px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--cyan), var(--orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            max-width: 750px;
+            margin: 0 auto 30px;
+            font-size: 17px;
+            color: var(--text-muted);
+            font-weight: 300;
+            line-height: 1.8;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 8% 80px;
+            position: relative;
+        }
+
+        /* Tab Content management */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Dashboard Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 30px;
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: rgba(0, 229, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 229, 255, 0.05);
+        }
+
+        .col-span-2 {
+            grid-column: span 2;
+        }
+
+        .col-span-3 {
+            grid-column: span 3;
+        }
+
+        .col-span-4 {
+            grid-column: span 4;
+        }
+
+        .metric-value {
+            font-size: 52px;
+            font-weight: 800;
+            color: #fff;
+            line-height: 1;
+            margin-bottom: 8px;
+            letter-spacing: -2px;
+        }
+
+        .metric-value span {
+            color: var(--cyan);
+        }
+
+        .metric-title {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .card-desc {
+            color: var(--text-muted);
+            font-size: 14.5px;
+            line-height: 1.7;
+            font-weight: 300;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-title span {
+            color: var(--cyan);
+        }
+
+        /* Embedded media wrapper */
+        .media-wrapper {
+            margin-top: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .media-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+            transition: transform 0.3s;
+        }
+
+        .media-wrapper img:hover {
+            transform: scale(1.01);
+        }
+
+        /* Code Editor styling */
+        .code-editor {
+            background-color: #030305;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13.5px;
+            color: #a6accd;
+            overflow-x: auto;
+            margin-top: 16px;
+            line-height: 1.6;
+        }
+
+        .code-keyword {
+            color: #c792ea;
+        }
+
+        .code-function {
+            color: #82aaff;
+        }
+
+        .code-comment {
+            color: #546e7a;
+            font-style: italic;
+        }
+
+        .code-string {
+            color: #c3e88d;
+        }
+
+        .code-number {
+            color: #f78c6c;
+        }
+
+        /* ROI Quadrilateral details */
+        .roi-map {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .lane-stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+        }
+
+        .lane-stat.left {
+            border-left: 4px solid var(--green);
+        }
+
+        .lane-stat.right {
+            border-left: 4px solid var(--cyan);
+        }
+
+        .lane-name {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .lane-coords {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .status-tag {
+            background: rgba(0, 255, 102, 0.08);
+            border: 1px solid rgba(0, 255, 102, 0.2);
+            color: var(--green);
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 26px;
+            border-radius: 8px;
+            font-size: 14.5px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--cyan);
+            color: var(--bg);
+            box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(0, 229, 255, 0.45);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--card-border);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .asset-list {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .asset-card {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .asset-card:hover {
+            border-color: rgba(0, 229, 255, 0.2);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .asset-info h4 {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .asset-info p {
+            font-size: 12.5px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .asset-arrow {
+            color: var(--cyan);
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+
+        .asset-card:hover .asset-arrow {
+            transform: translateX(4px);
+        }
+
+        /* Live Calculator widget */
+        .calc-container {
+            background: rgba(0, 229, 255, 0.02);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 20px;
+        }
+
+        .calc-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 16px;
+        }
+
+        .calc-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .calc-col label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .calc-col input {
+            background: #030305;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: #fff;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .calc-col input:focus {
+            outline: none;
+            border-color: var(--cyan);
+        }
+
+        .calc-btn {
+            background: var(--cyan);
+            border: none;
+            color: var(--bg);
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .calc-btn:hover {
+            box-shadow: 0 4px 15px rgba(0, 229, 255, 0.3);
+        }
+
+        .calc-result {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.02);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13.5px;
+            color: var(--cyan);
+            display: none;
+        }
+
+        footer {
+            border-top: 1px solid var(--card-border);
+            padding: 40px 8%;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="ambient-glow glow-1"></div>
+    <div class="ambient-glow glow-2"></div>
+
+    <header>
+        <div class="logo">TRAFFIC<span>AI</span></div>
+        <nav>
+            <button class="nav-tab active" onclick="switchTab('tab-dashboard')">Dashboard</button>
+            <button class="nav-tab" onclick="switchTab('tab-eda')">EDA Audit</button>
+            <button class="nav-tab" onclick="switchTab('tab-model')">YOLO11 Model</button>
+            <button class="nav-tab" onclick="switchTab('tab-video')">Density Inference</button>
+        </nav>
+    </header>
+
+    <section class="hero">
+        <div class="badge">Computer Vision Dashboard by Ali Naderi</div>
+        <h1>Real-Time Traffic <span>Density Estimation</span></h1>
+        <p>
+            An advanced predictive pipeline leveraging state-of-the-art <strong>YOLO11 Nano</strong> deep learning
+            and <strong>OpenCV region boundaries</strong> to estimate vehicle counts and traffic intensity
+            on dual-lane highway camera feeds.
+        </p>
+        <div class="btn-container">
+            <a href="file:///D:/Work Space/فصل چهارم/Real-Time traffic density estimation/Traffic_Density_Advanced_Modeling.html"
+                class="btn btn-primary" target="_blank">Open Modeling Notebook</a>
+            <a href="file:///D:/Work Space/فصل چهارم/Real-Time traffic density estimation/Traffic_Density_Advanced_EDA.html"
+                class="btn btn-secondary" target="_blank">View EDA Notebook</a>
+        </div>
+    </section>
+
+    <main class="container">
+
+        <!-- ─────────────────── TAB 1: DASHBOARD ─────────────────── -->
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="metric-value">91.2%</div>
+                    <div class="metric-title">Bounding Box Precision</div>
+                    <p class="card-desc">Low false positive rate, ensuring trees or lane markings are not misidentified
+                        as vehicles.</p>
+                </div>
+                <div class="card">
+                    <div class="metric-value">94.7%</div>
+                    <div class="metric-title">Bounding Box Recall</div>
+                    <p class="card-desc">High true positive rate, successfully catching vehicles even under shadows or
+                        light glare.</p>
+                </div>
+                <div class="card">
+                    <div class="metric-value">97.4%</div>
+                    <div class="metric-title">mAP50 Accuracy</div>
+                    <p class="card-desc">Mean Average Precision at IoU=0.50 threshold, outperforming YOLOv8 baselines.
+                    </p>
+                </div>
+                <div class="card">
+                    <div class="metric-value">72.4%</div>
+                    <div class="metric-title">mAP50-95 Accuracy</div>
+                    <p class="card-desc">Average precision evaluated across IoU 0.50 to 0.95, representing tight box
+                        contours.</p>
+                </div>
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Training &amp; Validation Convergence</h3>
+                    <p class="card-desc">
+                        The composite learning curves showing Box Loss, Classification Loss, and Distribution Focal Loss
+                        (DFL) stabilizing smoothly across 50 epochs.
+                    </p>
+                    <div class="media-wrapper">
+                        <img src="runs/detect/train/results.png" alt="YOLO11 Training Results Curves">
+                    </div>
+                </div>
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Key Achievements</h3>
+                    <ul class="card-desc" style="list-style-type: square; margin-left: 20px; line-height: 2;">
+                        <li><strong>Upgraded to YOLO11:</strong> Switched to the latest architecture, improving feature
+                            resolution.</li>
+                        <li><strong>GTX 1650 CUDA:</strong> Fine-tuned with local GPU acceleration in just 30 minutes.
+                        </li>
+                        <li><strong>Path Safety:</strong> Configured path strings programmatically to support Windows
+                            unicode.</li>
+                        <li><strong>ONNX Cross-Deployment:</strong> Model exported to ONNX format (10.1 MB) for OpenCV
+                            C++ deployment.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────── TAB 2: EDA AUDIT ─────────────────── -->
+        <div id="tab-eda" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Bounding Box Distributions</h3>
+                    <p class="card-desc">
+                        Spatial distribution and size analysis. Bounding box widths and heights peak around 35-50
+                        pixels, confirming vehicles are mid-sized bounding boxes. Center spatial points represent heavy
+                        concentration along the lane vectors.
+                    </p>
+                    <div class="media-wrapper">
+                        <img src="eda_box_distributions.png"
+                            alt="Bounding Box Width/Height aspect ratio distributions and spatial centers">
+                    </div>
+                </div>
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Dataset &amp; Data Quality Properties</h3>
+                    <p class="card-desc" style="margin-bottom: 16px;">
+                        The dataset consists of 626 images annotated in YOLOv8 format:
+                    </p>
+                    <ul class="card-desc" style="list-style-type: disc; margin-left: 20px; line-height: 2;">
+                        <li><strong>Training Set:</strong> 536 images with 50% probability horizontal flip augmentation.
+                        </li>
+                        <li><strong>Validation Set:</strong> 90 images kept raw to maintain validation integrity.</li>
+                        <li><strong>Resolution:</strong> All images standardized to exactly 640x640 resolution.</li>
+                        <li><strong>Zero Anomalies:</strong> Auditing labels confirmed zero empty coordinate strings or
+                            negative sizes.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────── TAB 3: YOLO11 MODEL ─────────────────── -->
+        <div id="tab-model" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Normalized Confusion Matrix</h3>
+                    <p class="card-desc">
+                        Confusion matrix confirming a 0.95 true positive rate for the 'Vehicle' class, with background
+                        false negatives restricted to just 0.05.
+                    </p>
+                    <div class="media-wrapper" style="background:#000;">
+                        <img src="runs/detect/train/confusion_matrix_normalized.png"
+                            alt="YOLO11 Normalized Confusion Matrix">
+                    </div>
+                </div>
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Precision-Recall Curve</h3>
+                    <p class="card-desc">
+                        PR-Curve showing the area under curve (AUC) is 0.974, indicating strong detection performance
+                        across confidence values.
+                    </p>
+                    <div class="media-wrapper" style="background:#000;">
+                        <img src="runs/detect/train/BoxPR_curve.png" alt="YOLO11 Precision-Recall Curve">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────── TAB 4: DENSITY INFERENCE ─────────────────── -->
+        <div id="tab-video" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Processed Video Playback</h3>
+                    <p class="card-desc">
+                        The output video after frame-by-frame inference, showing region boundaries drawn for both lanes
+                        and live traffic intensity tags overlaid.
+                    </p>
+                    <div class="media-wrapper">
+                        <video controls style="width: 100%; border-radius: 8px;">
+                            <source src="processed_sample_video.mp4" type="video/mp4">
+                            Your browser does not support the HTML5 video tag.
+                        </video>
+                    </div>
+                </div>
+                <div class="card col-span-2">
+                    <h3 class="section-title"><span>■</span> Region boundaries</h3>
+                    <p class="card-desc">
+                        Active highway coordinate regions (ROI) for lane counting.
+                    </p>
+                    <div class="roi-map">
+                        <div class="lane-stat left">
+                            <div>
+                                <div class="lane-name">Left Lane (Northeast flow)</div>
+                                <div class="lane-coords">[ (465, 350), (609, 350), (510, 630), (2, 630) ]</div>
+                            </div>
+                            <div class="status-tag">Active</div>
+                        </div>
+                        <div class="lane-stat right">
+                            <div>
+                                <div class="lane-name">Right Lane (Southwest flow)</div>
+                                <div class="lane-coords">[ (678, 350), (815, 350), (1203, 630), (743, 630) ]</div>
+                            </div>
+                            <div class="status-tag">Active</div>
+                        </div>
+                    </div>
+
+                    <!-- Live Interactive Calculator Widget -->
+                    <div class="calc-container">
+                        <h4
+                            style="font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 12px; text-transform: uppercase;">
+                            ⚡ Interactive Density Calculator</h4>
+                        <div class="calc-row">
+                            <div class="calc-col">
+                                <label for="input-vehicles">Vehicle Count</label>
+                                <input type="number" id="input-vehicles" value="12" min="0">
+                            </div>
+                            <div class="calc-col">
+                                <label for="input-threshold">Threshold</label>
+                                <input type="number" id="input-threshold" value="10" min="1">
+                            </div>
+                        </div>
+                        <button class="calc-btn" onclick="calculateIntensity()">Run Evaluation</button>
+                        <div class="calc-result" id="calc-result">Traffic Status: HEAVY</div>
+                    </div>
+                </div>
+                <div class="card col-span-4">
+                    <h3 class="section-title"><span>■</span> OpenCV Lane Detection Logic</h3>
+                    <p class="card-desc">
+                        How coordinates are mapped to classify left and right lane flow:
+                    </p>
+                    <div class="code-editor">
+                        <span class="code-comment"># Classify detected bounding box centroid against the lane separator
+                            threshold (609px)</span><br>
+                        x_center = (box.xyxy[0] + box.xyxy[2]) / 2<br>
+                        <span class="code-keyword">if</span> x_center &lt; lane_threshold:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;vehicles_in_left_lane += 1<br>
+                        <span class="code-keyword">else</span>:<br>
+                        &nbsp;&nbsp;&nbsp;&nbsp;vehicles_in_right_lane += 1<br>
+                        <br>
+                        <span class="code-comment"># Identify traffic density status</span><br>
+                        traffic_intensity = <span class="code-string">"Heavy"</span> <span
+                            class="code-keyword">if</span> vehicle_count &gt; heavy_traffic_threshold <span
+                            class="code-keyword">else</span> <span class="code-string">"Smooth"</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ─────────────────── ASSETS SECTION ─────────────────── -->
+        <div style="margin-top: 48px;">
+            <h3 class="section-title"><span>■</span> Deliverables &amp; Downloads</h3>
+            <div class="asset-list">
+                <a href="file:///D:/Work Space/فصل چهارم/Real-Time traffic density estimation/Traffic_Density_Advanced_Modeling.ipynb"
+                    class="asset-card" target="_blank">
+                    <div class="asset-info">
+                        <h4>Traffic_Density_Advanced_Modeling.ipynb</h4>
+                        <p>Source Jupyter Notebook containing YOLO11 training, GPU setup, and OpenCV counting loop.</p>
+                    </div>
+                    <div class="asset-arrow">→</div>
+                </a>
+                <a href="file:///D:/Work Space/فصل چهارم/Real-Time traffic density estimation/Traffic_Density_Advanced_EDA.ipynb"
+                    class="asset-card" target="_blank">
+                    <div class="asset-info">
+                        <h4>Traffic_Density_Advanced_EDA.ipynb</h4>
+                        <p>Source Jupyter Notebook containing label distribution, resolutions validation, and
+                            visualization overlays.</p>
+                    </div>
+                    <div class="asset-arrow">→</div>
+                </a>
+                <a href="file:///D:/Work Space/فصل چهارم/Real-Time traffic density estimation/runs/detect/train/weights/best.onnx"
+                    class="asset-card" target="_blank">
+                    <div class="asset-info">
+                        <h4>best.onnx</h4>
+                        <p>Optimized model weights exported to ONNX format (10.1 MB) for cross-platform visual serving.
+                        </p>
+                    </div>
+                    <div class="asset-arrow">→</div>
+                </a>
+                <a href="file:///D:/Work Space/فصل چهارم/Real-Time traffic density estimation/processed_sample_video.mp4"
+                    class="asset-card" target="_blank">
+                    <div class="asset-info">
+                        <h4>processed_sample_video.mp4</h4>
+                        <p>Transcoded output video demonstrating real-time dual-lane counting and traffic intensity tag
+                            overlays.</p>
+                    </div>
+                    <div class="asset-arrow">→</div>
+                </a>
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>Developed by | Ali Naderi | AI Engineer & Data Scientist · Workspace: Real-Time Traffic Density Estimation
+        </p>
+    </footer>
+
+    <script>
+        function switchTab(tabId) {
+            // Deactivate all tabs
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+
+            // Activate clicked tab
+            const btn = Array.from(document.querySelectorAll('.nav-tab')).find(button =>
+                button.getAttribute('onclick').includes(tabId)
+            );
+            if (btn) btn.classList.add('active');
+
+            const target = document.getElementById(tabId);
+            if (target) target.classList.add('active');
+        }
+
+        function calculateIntensity() {
+            const count = parseInt(document.getElementById('input-vehicles').value) || 0;
+            const thresh = parseInt(document.getElementById('input-threshold').value) || 10;
+            const resBox = document.getElementById('calc-result');
+
+            const status = count > thresh ? 'HEAVY' : 'SMOOTH';
+            resBox.innerText = 'Traffic Status: ' + status;
+            resBox.style.display = 'block';
+            if (status === 'HEAVY') {
+                resBox.style.color = 'var(--red)';
+                resBox.style.background = 'rgba(255, 61, 0, 0.08)';
+                resBox.style.border = '1px solid rgba(255, 61, 0, 0.2)';
+            } else {
+                resBox.style.color = 'var(--green)';
+                resBox.style.background = 'rgba(0, 255, 102, 0.08)';
+                resBox.style.border = '1px solid rgba(0, 255, 102, 0.2)';
+            }
+        }
+    </script>
+</body>
+
+</html>
