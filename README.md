@@ -67,6 +67,8 @@ mAP50-95: 72.4%
 Precision: 91.2%
 Recall: 94.7%
 Strong performance even under shadows and glare
+<img width="1680" height="1200" alt="eda_box_distributions" src="https://github.com/user-attachments/assets/5bf4b91f-afbc-4fc0-b719-31ffd3ce7c41" />
+
 
 🧪 Dataset
 
@@ -100,7 +102,7 @@ python inference.py    # (You can add your script)
 Ali Naderi
 AI Engineer & Data Scientist
 
-Portfolio: file:///D:/Work%20Space/%D9%81%D8%B5%D9%84%20%DA%86%D9%87%D8%A7%D8%B1%D9%85/Real-Time%20traffic%20density%20estimation/Traffic_Density_Estimation_Portfolio.html
+Portfolio: https://github.com/AliNaderiii/Real-Time-traffic-density-estimation/blob/main/Traffic_Density_Estimation_Portfolio.html
 LinkedIn: www.linkedin.com/Alinaderi1
 
 📄 License
