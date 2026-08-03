@@ -78,6 +78,8 @@ Strong performance even under shadows and glare.
 | Class | Vehicle (single class) |
 | Format | YOLOv8 label format |
 
+> **Dataset credit:** [Vehicle Detection YOLOv8](https://universe.roboflow.com/farzad/vehicle_detection_yolov8/dataset/3)
+> by *farzad* on Roboflow Universe — licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 ---
 
 ## 📁 Project Structure
