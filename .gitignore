@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+runs/
+train/
+valid/
+test/
+*.pt
+.venv/
+.DS_Store
