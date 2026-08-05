@@ -35,7 +35,7 @@ This project implements an end-to-end pipeline for estimating traffic density fr
 - Successful migration from YOLOv8 to **YOLO11**
 - Training completed in ~30 minutes on GTX 1650 with CUDA
 - ONNX export for cross-platform C++/OpenCV deployment
-- Clean dataset with zero annotation errors
+- No annotation errors found in spot checks
 
 ---
 
